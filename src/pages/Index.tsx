@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Icon from "@/components/ui/icon";
 import { useState, useEffect } from "react";
 
@@ -8,6 +10,8 @@ const Index = () => {
   const [formData, setFormData] = useState({ name: '', phone: '', message: '' });
   const [formErrors, setFormErrors] = useState({});
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+  const [isConsultationOpen, setIsConsultationOpen] = useState(false);
+  const [counters, setCounters] = useState({ experience: 0, cases: 0, clients: 0 });
 
   // Smooth scroll function
   const scrollToSection = (sectionId: string) => {
@@ -73,6 +77,48 @@ const Index = () => {
     elements.forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
+  }, []);
+
+  // Animated counter effect
+  useEffect(() => {
+    const animateCounters = () => {
+      const duration = 2000;
+      const targetValues = { experience: 15, cases: 500, clients: 1000 };
+      const startTime = Date.now();
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        setCounters({
+          experience: Math.floor(targetValues.experience * progress),
+          cases: Math.floor(targetValues.cases * progress),
+          clients: Math.floor(targetValues.clients * progress)
+        });
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+      
+      animate();
+    };
+
+    const statsObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          animateCounters();
+          statsObserver.disconnect();
+        }
+      });
+    }, { threshold: 0.5 });
+
+    const statsElement = document.getElementById('stats-section');
+    if (statsElement) {
+      statsObserver.observe(statsElement);
+    }
+
+    return () => statsObserver.disconnect();
   }, []);
   const services = [
     {
@@ -145,6 +191,35 @@ const Index = () => {
     }
   ];
 
+  const faqData = [
+    {
+      question: "Сколько стоит консультация?",
+      answer: "Первичная консультация бесплатная. Стоимость дальнейших услуг зависит от сложности дела и оговаривается индивидуально."
+    },
+    {
+      question: "Как долго рассматривается дело в суде?",
+      answer: "Сроки рассмотрения дел варьируются от 1-2 месяцев для простых споров до года для сложных корпоративных дел. Мы всегда информируем клиентов о предполагаемых сроках."
+    },
+    {
+      question: "Работаете ли вы с регионами?",
+      answer: "Да, мы работаем по всей России. Консультации проводим онлайн, а в суд можем выезжать или работать через местных представителей."
+    },
+    {
+      question: "Какие документы нужны для начала работы?",
+      answer: "Для начальной консультации достаточно описания ситуации. Полный пакет документов определяется после анализа дела."
+    },
+    {
+      question: "Гарантируете ли вы положительный исход дела?",
+      answer: "Мы не можем гарантировать 100% победу, но обеспечиваем профессиональную защиту ваших интересов и честную оценку перспектив дела."
+    }
+  ];
+
+  const stats = [
+    { label: "Лет опыта", value: 15, suffix: "+" },
+    { label: "Выигранных дел", value: 500, suffix: "+" },
+    { label: "Довольных клиентов", value: 1000, suffix: "+" }
+  ];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -169,9 +244,61 @@ const Index = () => {
             >
               <Icon name={isMenuOpen ? "X" : "Menu"} className="h-6 w-6 text-gray-700" />
             </button>
-            <Button className="hidden md:block bg-primary hover:bg-blue-600" onClick={() => scrollToSection('contact')}>
-              Получить консультацию
-            </Button>
+            <Dialog open={isConsultationOpen} onOpenChange={setIsConsultationOpen}>
+              <DialogTrigger asChild>
+                <Button className="hidden md:block bg-primary hover:bg-blue-600">
+                  Получить консультацию
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Быстрая консультация</DialogTitle>
+                  <DialogDescription>
+                    Оставьте контакты и мы свяжемся с вами в течение 15 минут
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Ваше имя"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      className={`w-full px-4 py-2 border rounded-md focus:outline-none transition-colors ${
+                        formErrors.name ? 'border-red-500' : 'border-gray-300 focus:border-primary'
+                      }`}
+                    />
+                    {formErrors.name && <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>}
+                  </div>
+                  <div>
+                    <input
+                      type="tel"
+                      placeholder="Телефон"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className={`w-full px-4 py-2 border rounded-md focus:outline-none transition-colors ${
+                        formErrors.phone ? 'border-red-500' : 'border-gray-300 focus:border-primary'
+                      }`}
+                    />
+                    {formErrors.phone && <p className="text-red-500 text-sm mt-1">{formErrors.phone}</p>}
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-primary hover:bg-blue-600 disabled:opacity-50"
+                    disabled={isFormSubmitting}
+                  >
+                    {isFormSubmitting ? (
+                      <>
+                        <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
+                        Отправляем...
+                      </>
+                    ) : (
+                      'Получить консультацию'
+                    )}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
         
@@ -208,10 +335,62 @@ const Index = () => {
               Опыт 15+ лет, более 500 выигранных дел.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-scale-in">
-              <Button size="lg" className="bg-primary hover:bg-blue-600 px-8 py-3" onClick={() => scrollToSection('contact')}>
-                <Icon name="Phone" className="mr-2 h-5 w-5" />
-                Консультация
-              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="lg" className="bg-primary hover:bg-blue-600 px-8 py-3">
+                    <Icon name="Phone" className="mr-2 h-5 w-5" />
+                    Консультация
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Быстрая консультация</DialogTitle>
+                    <DialogDescription>
+                      Оставьте контакты и мы свяжемся с вами в течение 15 минут
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Ваше имя"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        className={`w-full px-4 py-2 border rounded-md focus:outline-none transition-colors ${
+                          formErrors.name ? 'border-red-500' : 'border-gray-300 focus:border-primary'
+                        }`}
+                      />
+                      {formErrors.name && <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>}
+                    </div>
+                    <div>
+                      <input
+                        type="tel"
+                        placeholder="Телефон"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        className={`w-full px-4 py-2 border rounded-md focus:outline-none transition-colors ${
+                          formErrors.phone ? 'border-red-500' : 'border-gray-300 focus:border-primary'
+                        }`}
+                      />
+                      {formErrors.phone && <p className="text-red-500 text-sm mt-1">{formErrors.phone}</p>}
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-primary hover:bg-blue-600 disabled:opacity-50"
+                      disabled={isFormSubmitting}
+                    >
+                      {isFormSubmitting ? (
+                        <>
+                          <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
+                          Отправляем...
+                        </>
+                      ) : (
+                        'Получить консультацию'
+                      )}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
               <Button variant="outline" size="lg" className="px-8 py-3">
                 <Icon name="Download" className="mr-2 h-5 w-5" />
                 Скачать презентацию
@@ -247,6 +426,24 @@ const Index = () => {
                   </CardDescription>
                 </CardContent>
               </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section id="stats-section" className="py-16 bg-primary text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            {stats.map((stat, index) => (
+              <div key={index} className="animate-on-scroll">
+                <div className="text-4xl md:text-6xl font-bold mb-2">
+                  {index === 0 && counters.experience}{stat.suffix}
+                  {index === 1 && counters.cases}{index === 1 ? stat.suffix : ''}
+                  {index === 2 && counters.clients}{index === 2 ? stat.suffix : ''}
+                </div>
+                <p className="text-xl text-blue-100">{stat.label}</p>
+              </div>
             ))}
           </div>
         </div>
@@ -337,6 +534,34 @@ const Index = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12 animate-on-scroll">
+            <h2 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 mb-4">
+              Часто задаваемые вопросы
+            </h2>
+            <p className="text-lg text-gray-600">
+              Ответы на самые популярные вопросы наших клиентов
+            </p>
+          </div>
+          <div className="animate-on-scroll">
+            <Accordion type="single" collapsible className="space-y-4">
+              {faqData.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`} className="border rounded-lg px-6">
+                  <AccordionTrigger className="text-left font-heading hover:no-underline">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-gray-600 pb-6">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         </div>
       </section>
